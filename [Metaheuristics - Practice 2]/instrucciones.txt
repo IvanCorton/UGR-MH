@@ -1,0 +1,108 @@
+IMPORTANTE: Usar los comandos estando situados en la carpeta P2.
+
+IMPORTANTE: Voy a necesitar que cambies una linea de cada algoritmo, 
+	porque no se cual es la raiz de tus carpetas.
+
+e.g: En mi caso esta linea es así:
+
+linea 633: File.open("/home/ivancorton/Escritorio/MH/P2/datos/"+file_name);	
+linea 907: ofstream fichero("/home/ivancorton/Escritorio/MH/P2/datos/"+out_name); 
+
+Para mirar eso, vete a la carpeta datos dentro de P2.
+
+Luego dale a propiedades a cualquier archivo, y copia donde pone:
+	Carpeta padre: /home/ivancorton/Escritorio/MH/P2/datos
+
+Y pegalo en el principio del main de cada archivo y en el final, para
+poder acceder a la lectura y escritura en ficheros. :D
+
+
+IMPORTANTE:
+-> Estando dentro de P2, escribir SOLO UNA VEZ:
+	make
+
+(Para compilar y generar los ejecutables)
+
+--------------------------------------------
+Para ejecutar el primer algoritmo:
+--------------------------------------------
+
+./bin/ejecutable MDG-b_1_n500_m50.txt MDG-1.txt 1234567890
+
+
+//...esperar a que ejecute...//
+
+
+./bin/ejecutable GKD-c_11_n500_m50.txt GKD-11.txt 1234567890
+
+---------------------------------
+Para ejecutar el segundo algoritmo:
+---------------------------------
+
+./bin/ejecutable2 MDG-b_1_n500_m50.txt MDG-1.txt 1234567890
+
+
+//...esperar a que ejecute...//
+
+
+./bin/ejecutable2 GKD-c_11_n500_m50.txt GKD-11.txt 1234567890
+
+---------------------------------
+Para ejecutar el tercer algoritmo:
+---------------------------------
+
+./bin/ejecutable3 MDG-b_1_n500_m50.txt MDG-1.txt 1234567890
+
+
+//...esperar a que ejecute...//
+
+
+./bin/ejecutable3 GKD-c_11_n500_m50.txt GKD-11.txt 1234567890
+
+---------------------------------
+Para ejecutar el cuarto algoritmo:
+---------------------------------
+
+./bin/ejecutable4 MDG-b_1_n500_m50.txt MDG-1.txt 1234567890
+
+
+//...esperar a que ejecute...//
+
+
+./bin/ejecutable4 GKD-c_11_n500_m50.txt GKD-11.txt 1234567890
+
+---------------------------------
+Para ejecutar el quinto algoritmo:
+---------------------------------
+
+./bin/ejecutable5 MDG-b_1_n500_m50.txt MDG-1.txt 1234567890
+
+
+//...esperar a que ejecute...//
+
+
+./bin/ejecutable5 GKD-c_11_n500_m50.txt GKD-11.txt 1234567890
+
+---------------------------------
+Para ejecutar el sexto algoritmo:
+---------------------------------
+
+./bin/ejecutable6 MDG-b_1_n500_m50.txt MDG-1.txt 1234567890
+
+
+//...esperar a que ejecute...//
+
+
+./bin/ejecutable6 GKD-c_11_n500_m50.txt GKD-11.txt 1234567890
+
+---------------------------------
+Para ejecutar el ÚLTIMO algoritmo:
+---------------------------------
+
+./bin/ejecutable7 MDG-b_1_n500_m50.txt MDG-1.txt 1234567890
+
+
+//...esperar a que ejecute...//
+
+
+./bin/ejecutable7 GKD-c_11_n500_m50.txt GKD-11.txt 1234567890

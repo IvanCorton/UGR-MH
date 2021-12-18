@@ -8,44 +8,10 @@
 #include <list>
 #include <time.h>
 #include <sys/time.h>
-#define MASK 2147483647
-#define PRIME 65539
-#define SCALE 0.4656612875e-9
-#define MAX 2000000000000000
+#include "math.h"
+#include "random.h"
 
 using namespace std;
-
-unsigned long Seed = 0L;
-
-/* GENERADOR DE NUMEROS ALEATORIOS */
-
-/* Inicializa la semilla al valor 'x'.
-   Solo debe llamarse a esta funcion una vez en todo el programa */
-void Set_random (unsigned long x){
-    Seed = (unsigned long) x;
-}
-
-/* Devuelve el valor actual de la semilla */
-unsigned long Get_random (void){
-    return Seed;
-}
-
-/* Genera un numero aleatorio real en el intervalo [0,1[
-   (incluyendo el 0 pero sin incluir el 1) */
-float Rand(void){
-    return (( Seed = ( (Seed * PRIME) & MASK) ) * SCALE );
-}
-
-/* Genera un numero aleatorio entero en {low,...,high} */
-int Randint(int low, int high){
-    return (int) (low + (high-(low)+1) * Rand());
-}
-
-/* Genera un numero aleatorio real en el intervalo [low,...,high[
-   (incluyendo 'low' pero sin incluir 'high') */
-float Randfloat(float low, float high){
-    return (low + (high-(low))*Rand());
-}
 
 
 bool estaDentro(int j, list<int> vecSolucion){
@@ -754,17 +720,46 @@ void BusquedaLocal(vector<vector<double>> vecDistancias, int m, int LIMITE, list
 }
 
 
-int main(){
+int main(int argc,char *argv[]){
 
-	int n, m, k, l, LIMITE=50;
+	int n, m, k, l, LIMITE=30;
 	double distancia;
+	int h = 0;
+
+	int numArchivosAcargar = 9;
+
+	if(argc!=4){
+    		printf("Datos mal introducidos.\n");
+    		exit(1); 
+	}
+
+	string file_name = argv[1];	//Fichero del que tomar datos
+
+	string out_name = argv[2];
+
+	while(h<numArchivosAcargar){
+		
+
 	
-    auto Semilla = 1234;
-    Set_random(Semilla);
+		cout<<file_name<<endl;
+		cout<<out_name<<endl;
 
-	ifstream File("C:/Users/ivanc/OneDrive/Desktop/Universidad/MH/Instancias y Tablas MDP 2019-20/GKD-c_11_n500_m50.txt",ios::in);
+		//Fichero en el que escribir datos
 
-	if(!File){
+	int Semilla = stoi(argv[3]);	//Semilla aleatoria
+	Set_random(Semilla);
+
+	ifstream File;
+
+	if(file_name[0] == 'M'){
+		file_name[6]++;
+	}else{
+		file_name[7]++;
+	}
+
+	File.open("/home/cphys-lucia.zapataechevarne/Ivan/P2/datos/"+file_name);	
+
+	if(File.fail()){
 		cout<<"Error al abrir el archivo, por favor, compruebe el nombre del fichero de entrada..."<<endl;
 		exit(1);
 	}else{
@@ -787,8 +782,8 @@ int main(){
 		File.close();
 
         auto Semilla2 = Get_random();
-
         cout<<"USANDO SEMILLA: "<<Semilla2<<endl;
+
 		cout<<"Tamanio del problema: "<<n<<" "<<endl<<"Tamanio del espacio de soluciones: "<<m<<endl;
         
         list<list<int>> listaSolucion, listaCandidatos;
@@ -1167,7 +1162,31 @@ int main(){
             listaAportesReal.push_back(aporteIesimo);
         }
 
-	    cout<<"COSTE FINAL: "<<endl;
+	   fstream fichero("/home/cphys-lucia.zapataechevarne/Ivan/P2/datos/"+out_name, ios::app);
+
+	//string unString;
+
+ fichero <<"-------------------------------------------------------------------"<<endl;
+
+        for(auto it=listaAportesReal.begin(); it!=listaAportesReal.end(); ++it){
+            fichero << (*it); 
+            fichero << endl;
+        }
+        
+        fichero <<"Time: "<<time<<endl;
+        fichero << "-------------------------------------------------------------------"<<endl;
+        fichero.close();
+
+	cout<<"COSTE FINAL: "<<endl;
+	
+	if(out_name[0] == 'M'){
+		out_name[4]++;
+	}else{
+		out_name[5]++;
+	}
+		h++;
+        
+    }		//Fin while
         
     }
 

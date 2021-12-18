@@ -8,44 +8,10 @@
 #include <list>
 #include <time.h>
 #include <sys/time.h>
-#define MASK 2147483647
-#define PRIME 65539
-#define SCALE 0.4656612875e-9
-#define MAX 2000000000000000
+#include "math.h"
+#include "random.h"
 
 using namespace std;
-
-unsigned long Seed = 0L;
-
-/* GENERADOR DE NUMEROS ALEATORIOS */
-
-/* Inicializa la semilla al valor 'x'.
-   Solo debe llamarse a esta funcion una vez en todo el programa */
-void Set_random (unsigned long x){
-    Seed = (unsigned long) x;
-}
-
-/* Devuelve el valor actual de la semilla */
-unsigned long Get_random (void){
-    return Seed;
-}
-
-/* Genera un numero aleatorio real en el intervalo [0,1[
-   (incluyendo el 0 pero sin incluir el 1) */
-float Rand(void){
-    return (( Seed = ( (Seed * PRIME) & MASK) ) * SCALE );
-}
-
-/* Genera un numero aleatorio entero en {low,...,high} */
-int Randint(int low, int high){
-    return (int) (low + (high-(low)+1) * Rand());
-}
-
-/* Genera un numero aleatorio real en el intervalo [low,...,high[
-   (incluyendo 'low' pero sin incluir 'high') */
-float Randfloat(float low, float high){
-    return (low + (high-(low))*Rand());
-}
 
 
 bool estaDentro(int j, list<int> vecSolucion){
@@ -74,7 +40,7 @@ void reemplazar(list<int> desde, list<int> &hacia, int posicion){
 
     advance(it2,posicion);
 
-    (*it2) = (*it1); 
+    (*it2) = (*it1);
 
 }
 
@@ -102,7 +68,7 @@ void mutacion(list<list<int>> &poblacionIntermedia){
 
         advance(iterPoblacion,Cromosoma);
 
-        auto jt = (*iterPoblacion).begin(); 
+        auto jt = (*iterPoblacion).begin();
 
         advance(jt, GenAmutar);
 
@@ -135,34 +101,37 @@ void mutacion(list<list<int>> &poblacionIntermedia){
 }
 
 
-list<list<int>> torneoBinario(const list<list<int>> poblacionInicial,const list<list<double>> aportes){
+list<list<int>> torneoBinario(list<list<int>> &poblacionInicial, list<list<double>> aportes, int tam, int numPadres){
 
+    int contador = 0;
     list<list<int>> padres;
 
-    for(auto it=poblacionInicial.begin(); it!=poblacionInicial.end(); ++it){
+    while(contador<numPadres){
 
         //Seleccion competidores
 
-        auto iRandom = Randint(-1,poblacionInicial.size()-1);
-        auto iteradorLista = poblacionInicial.begin();
+        auto iRandom = Randint(-1,tam-1);
+        auto jRandom = Randint(-1,tam-1);
+
+        while(iRandom==jRandom){
+            jRandom = Randint(-1,tam-1);
+        }
+
+        list<list<int>>::iterator iteradorLista = poblacionInicial.begin();
         advance(iteradorLista,iRandom);
 
-        auto candidato1 = (*iteradorLista);
+        list<int> candidato1 = (*iteradorLista);
 
-        auto jRandom = Randint(-1,poblacionInicial.size()-1);
-
-        while(jRandom==iRandom)
-        jRandom = Randint(-1,poblacionInicial.size()-1);
-        
         iteradorLista = poblacionInicial.begin();
         advance(iteradorLista,jRandom);
 
-        auto candidato2 = (*iteradorLista);
+        list<int> candidato2 = (*iteradorLista);
 
         //Torneo
 
-        auto iteradorAportes1 = aportes.begin(); advance(iteradorAportes1, iRandom);
-        auto iteradorAportes2 = aportes.begin(); advance(iteradorAportes2,jRandom);
+        list<list<double>>::iterator iteradorAportes1, iteradorAportes2;
+        iteradorAportes1 = aportes.begin(); advance(iteradorAportes1, iRandom);
+        iteradorAportes2 = aportes.begin(); advance(iteradorAportes2,jRandom);
 
         list<double> aportes1, aportes2;
 
@@ -173,12 +142,19 @@ list<list<int>> torneoBinario(const list<list<int>> poblacionInicial,const list<
 
         auto it2=aportes2.begin();
 
-        for(auto it=aportes1.begin(); it!=aportes1.end(); ++it, ++it2){
+        for(auto it=aportes1.begin(); it!=aportes1.end(); it++, it2++){
             aporteTotal1+=(*it);
             aporteTotal2+=(*it2);
         }
 
-        (aporteTotal1>aporteTotal2) ? (padres.push_back(candidato1)) : (padres.push_back(candidato2));
+        if(aporteTotal1>aporteTotal2){
+            padres.push_back(candidato1);
+        }else{
+            padres.push_back(candidato2);
+        }
+
+        contador++;
+
     }
 
     return padres;
@@ -272,7 +248,7 @@ void reparacion(list<int> &hijo, vector<vector<double>> vecDistancias, list<doub
     for(auto it = hijo.begin(); it != hijo.end(); it++, contador++){
         if((*it)==1){
             numGenes++;
-        } 
+        }
     }
 
     aportes.assign(numGenes, 0);
@@ -286,12 +262,12 @@ void reparacion(list<int> &hijo, vector<vector<double>> vecDistancias, list<doub
             for(auto it = hijo.begin(); it != hijo.end(); it++, contador++){
                 if((*it)==1){
                     candidatos.push_back(contador);
-                } 
+                }
             }
-        
+
 
         vector<double> listovec(aportes.size());
-                                    
+
             auto i = 0, j = 0;
 
             for(list<int>::iterator it = candidatos.begin(); it != candidatos.end(); it++, i++){
@@ -308,7 +284,7 @@ void reparacion(list<int> &hijo, vector<vector<double>> vecDistancias, list<doub
         aporteHijo = aportes;
 
     }else if(tam-numGenes<0){        //Si sobran elementos eliminaremos los de mayor aporte.
-                               
+
             list<int> candidatos;
 
             contador=0;
@@ -316,12 +292,12 @@ void reparacion(list<int> &hijo, vector<vector<double>> vecDistancias, list<doub
             for(auto it = hijo.begin(); it != hijo.end(); it++, contador++){
                 if((*it)==1){
                     candidatos.push_back(contador);
-                } 
+                }
             }
 
 
             vector<double> listovec(aportes.size());
-                                    
+
             auto i = 0, j = 0;
 
             for(list<int>::iterator it = candidatos.begin(); it != candidatos.end(); it++, i++){
@@ -356,7 +332,7 @@ void reparacion(list<int> &hijo, vector<vector<double>> vecDistancias, list<doub
             }
 
     }else{
-        
+
         while(tam-numGenes > 0){
                 contador=0, numGenes=0;
                 int numCeros = 0;
@@ -364,7 +340,7 @@ void reparacion(list<int> &hijo, vector<vector<double>> vecDistancias, list<doub
 
                 for(auto it = hijo.begin(); it != hijo.end(); it++, contador++){
                     if((*it)==0){
-                        candidatos.push_back(contador); 
+                        candidatos.push_back(contador);
                         numCeros++;
                     }else{
                         candidatosSol.push_back(contador);
@@ -460,7 +436,7 @@ void positionCrossover(list<int> padre1, list<int> padre2, list<int> &hijo1, lis
             restosPadre2.pop_front();
         }
     }
-    
+
     hijo1 = hijoParcial1;
     hijo2 = hijoParcial2;
 
@@ -468,7 +444,7 @@ void positionCrossover(list<int> padre1, list<int> padre2, list<int> &hijo1, lis
 
 //Genera soluciones no factibles. (requiere reparador)
 void uniformCrossover(list<int> padre1, list<int> padre2, list<int> &hijo1, int tam){
-   
+
     list<int> hijoParcial1;
     int contador=0;
 
@@ -537,7 +513,7 @@ void comprobarReemplazamiento(list<int> candidatoActualReal, double maxAnterior,
         for(auto jt = (*it).begin(); jt!=(*it).end(); jt++, contando++){
             if(*jt==1)
             poblacionIesima.push_back(contando);
-        
+
         }
         contando=0;
         costesFinales.push_back(calculoCosteFinal(poblacionIesima, vecDistancias));
@@ -601,7 +577,7 @@ void comprobarReemplazamiento(list<int> candidatoActualReal, double maxAnterior,
 
                 list<double> aportes;
 
-                aportes.assign(tam,0);     
+                aportes.assign(tam,0);
 
                 vector<double> listovec(aportes.size());
 
@@ -621,7 +597,7 @@ void comprobarReemplazamiento(list<int> candidatoActualReal, double maxAnterior,
 
                 aportes.insert(aportes.begin(), listovec.begin(), listovec.end());
                 aportes.resize(tam);
-                
+
                 listaAportesProb.push_back(aportes);
 
             }
@@ -635,22 +611,51 @@ void comprobarReemplazamiento(list<int> candidatoActualReal, double maxAnterior,
 
 
 
-int main(){
+int main(int argc,char *argv[]){
 
-	int n, m, k, l, LIMITE=500;
+	int n, m, k, l, LIMITE=1000;
 	double distancia;
-	
-    auto Semilla = 1234567890;
-    Set_random(Semilla);
+	int h = 0;
 
-	ifstream File("C:/Users/ivanc/OneDrive/Desktop/Universidad/MH/Instancias y Tablas MDP 2019-20/MDG-b_4_n500_m50.txt",ios::in);
+	int numArchivosAcargar = 9;
 
-	if(!File){
+	if(argc!=4){
+    		printf("Datos mal introducidos.\n");
+    		exit(1);
+	}
+
+	string file_name = argv[1];	//Fichero del que tomar datos
+
+	string out_name = argv[2];
+
+	while(h<numArchivosAcargar){
+
+
+
+		cout<<file_name<<endl;
+		cout<<out_name<<endl;
+
+		//Fichero en el que escribir datos
+
+	int Semilla = stoi(argv[3]);	//Semilla aleatoria
+	Set_random(Semilla);
+
+	ifstream File;
+
+	if(file_name[0] == 'M'){
+		file_name[6]++;
+	}else{
+		file_name[7]++;
+	}
+
+	File.open("/home/cphys-lucia.zapataechevarne/Ivan/P2/datos/"+file_name);
+
+	if(File.fail()){
 		cout<<"Error al abrir el archivo, por favor, compruebe el nombre del fichero de entrada..."<<endl;
-		//exit(1);
+		exit(1);
 	}else{
 
-		File >> n >> m;	
+		File >> n >> m;
 
         auto numIteraciones = n*(n-1)/2;
 
@@ -671,7 +676,7 @@ int main(){
         cout<<"USANDO SEMILLA: "<<Semilla2<<endl;
 
 		cout<<"Tamanio del problema: "<<n<<" "<<endl<<"Tamanio del espacio de soluciones: "<<m<<endl;
-        
+
         list<list<int>> listaSolucion, listaCandidatos;
         list<int> Posibilidades, Solucioni;
         list<list<double>> listaAportes;
@@ -684,19 +689,19 @@ int main(){
         for(auto k=0;k<m;k++){
 
             Solucioni = Posibilidades;
-            
-            aportes.assign(m,0);     
+
+            aportes.assign(m,0);
 
             auto hastaRellenar = 0;
 
             vector<double> listovec(aportes.size());
 
             list<int> candidatos;
-            
-            for(int j = 0; hastaRellenar < m; j++){            
+
+            for(int j = 0; hastaRellenar < m; j++){
 
                 auto iRandom = Randint(-1,n-1);
-                
+
                 if(!estaDentro(iRandom,Solucioni)){     //Necesario para no meter numeros repetidos que no sean borrados en candidatos.
                     //Eliminar el 0 en la posicion iRandom e insertar un 1.
                     //cout<<"Aleatorio generado: "<<iRandom<<endl;
@@ -708,7 +713,7 @@ int main(){
                     hastaRellenar++;
                 }
             }
-            
+
             auto i = 0, j = 0;
 
             for(list<int>::iterator it = candidatos.begin(); it != candidatos.end(); it++, i++){
@@ -721,34 +726,36 @@ int main(){
 
             aportes.insert(aportes.begin(), listovec.begin(), listovec.end());
             aportes.resize(m);
-            
+
             listaSolucion.push_back(Solucioni);
             listaAportes.push_back(aportes);
 
         }
 
-        
+
 
         // GENERACION POBLACION MEDIANTE PROCESO EVOLUTIVO.
 
 
         auto cambio = 0;
-        auto parada = false;
-
-        list<list<int>> poblacionActual = listaSolucion;
-
-        list<list<int>> poblacionPadres, candidatosPadres, copiaPadres;
-        list<list<double>> aportesPadres;
 
         auto t0=clock();
-            
-        auto crucesEsperados = 0.6 * m/2;   //Prob. cruce * tam/2.
+
 
         while((cambio < LIMITE)){
-        
-            poblacionPadres = torneoBinario(poblacionActual, listaAportes);
+
+
+            auto crucesEsperados = 1;
+            list<list<int>> poblacionPadres, candidatosPadres, copiaPadres;
+            list<list<double>> aportesPadres;
+            list<double> aportePadre;
+            list<list<int>> poblacionActual = listaSolucion;
+
+            poblacionPadres = torneoBinario(poblacionActual, listaAportes, m, 2);
 
             copiaPadres = poblacionPadres;
+
+            aportePadre.assign(copiaPadres.size(),0);
 
             auto itPadres = poblacionPadres.begin();
 
@@ -766,8 +773,6 @@ int main(){
                 //CandidatoPa ya rellenado de candidatos, ahora rellenar aportePadre.
                 auto i = 0, j = 0;
 
-                list<double> aportePadre;
-
                 vector<double> listovec(m);
 
                 for(list<int>::iterator it = candidatoPa.begin(); it != candidatoPa.end(); it++, i++){
@@ -779,13 +784,14 @@ int main(){
                 }
 
                 aportePadre.insert(aportePadre.begin(), listovec.begin(), listovec.end());
+                aportePadre.resize(m);
 
                 candidatosPadres.push_back(candidatoPa);
                 aportesPadres.push_back(aportePadre);
                 itPadres++;
 
             }
-                        
+
             list<list<double>> aportesIntermedios;
             list<list<int>> poblacionIntermedia;
 
@@ -794,9 +800,9 @@ int main(){
             //PoblacionPadre guarda los cromosomas de los padres.
 
             while(crucesEsperados>0){
-                
+
                 list<double> aporteHijo;
-                //GENERACIONAL 1: SELECCION (Misma poblacion)
+               /* //GENERACIONAL 1: SELECCION (Misma poblacion)
                 list<int> padre1 = poblacionPadres.front();
                 poblacionPadres.pop_front();
                 list<int> padre2 = poblacionPadres.front();
@@ -815,14 +821,34 @@ int main(){
 
                 poblacionIntermedia.push_back(hijo2);
                 aportesIntermedios.push_back(aporteHijo);
+                */
+
+                //GENERACIONAL 1: SELECCION (Misma poblacion)
+                list<int> padre1 = poblacionPadres.front();
+                poblacionPadres.pop_front();
+                list<int> padre2 = poblacionPadres.front();
+                poblacionPadres.pop_front();
+                list<int> hijo1, hijo2;
+
+                positionCrossover(padre1, padre2, hijo1, hijo2, n);
+                reparacion(hijo1, vecDistancias, aporteHijo, m);
+
+                poblacionIntermedia.push_back(hijo1);
+                aportesIntermedios.push_back(aporteHijo);
+
+                reparacion(hijo2, vecDistancias, aporteHijo, m);
+
+                poblacionIntermedia.push_back(hijo2);
+                aportesIntermedios.push_back(aporteHijo);
+
+                //GENERACIONAL 3: RECUPERACION HASTA M DESDE PADRE 1 Y PADRE 2
 
                 crucesEsperados--;
             }
 
-            //GENERACIONAL 3: RECUPERACION HASTA M DESDE PADRE 1 Y PADRE 2
-            while(poblacionIntermedia.size()<m){
-               recuperacion(poblacionIntermedia, aportesIntermedios,copiaPadres,vecDistancias,m);
-            }
+           /* while(poblacionIntermedia.size()<m){
+               recuperacion(poblacionIntermedia, aportesIntermedios,copiaPadres,vecDistancias,);
+            }*/
 
             //GENERACIONAL 4: MUTACION (Mutar hijos)
             mutacion(poblacionIntermedia);
@@ -830,6 +856,8 @@ int main(){
             //GENERACIONAL 5: REEMPLAZAMIENTO ELITISTA.
 
             auto aporteA = 0.0;
+
+            //ORDENANDO APORTES INICIALES POR INDICES
 
             list<double> aportesIniciales;
 
@@ -849,45 +877,108 @@ int main(){
                 indicesSol.push_back(i);
             }
 
-            vector<pair<double, int>> vector;
+            vector<pair<double, int>> vector2;
 
             auto itC = indicesSol.begin();
 
             for(list<double>::iterator it=aportesIniciales.begin(); it!=aportesIniciales.end();it++, itC++){
-                vector.push_back(make_pair((*it), (*itC)));
+                vector2.push_back(make_pair((*it), (*itC)));
             }
 
-            sort(vector.begin(),vector.end(), compare);
+            sort(vector2.begin(),vector2.end(), compare);       //APORTES DE SOLINICIAL POR INDICE
 
-            auto mejorCromosomaActual = vector.front().second;
+            list<list<int>> poblacionIntermediaEnteros;
+            list<int> poblacionEnteros;
 
-            auto itA = listaSolucion.begin();
+            auto itInter = poblacionIntermedia.begin();
 
-            advance(itA, mejorCromosomaActual);
+            auto contador=0;
 
-            list<int> candidatoActual, candidatoActualReal;
-
-            auto contando = 0;
-
-            for(auto it = (*itA).begin(); it!=(*itA).end(); it++,contando++){
-                if(*it==1){
-                    candidatoActual.push_back(contando);
+            while(itInter!=poblacionIntermedia.end()){
+                for(auto it=(*itInter).begin(); it!=(*itInter).end(); it++,contador++){
+                    if(*it==1) poblacionEnteros.push_back(contador);
                 }
-                candidatoActualReal.push_back(*it);
+                poblacionIntermediaEnteros.push_back(poblacionEnteros);
+                poblacionEnteros.assign(0,0);
+                contador = 0;
+                itInter++;
             }
 
-            double maxAnterior = calculoCosteFinal(candidatoActual, vecDistancias);
+            itInter = poblacionIntermediaEnteros.begin();
 
-            comprobarReemplazamiento(candidatoActualReal, maxAnterior, listaAportes, poblacionIntermedia, vecDistancias, m);
+            double costeHijo1 = calculoCosteFinal(*itInter, vecDistancias);
+            itInter++;
+            double costeHijo2 = calculoCosteFinal(*itInter, vecDistancias);
 
-            listaSolucion = poblacionIntermedia;
-            
+            auto mejorCromosomaActual = 0;
+
+            if(costeHijo1>costeHijo2){
+                mejorCromosomaActual = 0;
+            }else{
+                mejorCromosomaActual = 1;
+            }
+
+            //Una vez visto cual va a entrar en la poblacion, hacemos que entre al final, reordenamos y sesgamos.
+
+            //listaSolcion
+            //listaAportes
+            auto iterCandidatos = poblacionIntermediaEnteros.begin();
+
+            if(mejorCromosomaActual==1){
+                iterCandidatos++;
+            }
+
+            vector<double> listovec (m);
+            list<double> aporteMejorCromosoma;
+
+            auto i = 0, j = 0;
+
+            for(list<int>::iterator it = (*iterCandidatos).begin(); it != (*iterCandidatos).end(); it++, i++){
+                j = i;
+                for(list<int>::iterator jt = it; jt != (*iterCandidatos).end(); jt++, j++){
+                    listovec[i] += vecDistancias[*it][*jt];
+                    listovec[j] += vecDistancias[*it][*jt];
+                }
+            }
+
+            aporteMejorCromosoma.insert(aporteMejorCromosoma.begin(), listovec.begin(), listovec.end());
+            aporteMejorCromosoma.resize(m);
+
+            aporteA = 0;
+
+            for(auto it=aporteMejorCromosoma.begin(); it!=aporteMejorCromosoma.end(); it++){
+                aporteA+=(*it);
+            }
+
+            vector2.push_back(make_pair(aporteA, m));
+
+            sort(vector2.begin(),vector2.end(),compare);
+
+            //poblacionintermedia guarda CANDIDATOS A ENTRAR.
+            if(vector2.back().second!=m){
+                auto iterSolucion = listaSolucion.begin();
+
+                advance(iterSolucion, vector2.back().second);
+
+                auto iterMejorCandidato = poblacionIntermedia.begin();
+
+                if(mejorCromosomaActual==1) iterMejorCandidato++;
+
+                (*iterSolucion) = (*iterMejorCandidato);
+
+                auto iterAportes = listaAportes.begin();
+
+                advance(iterAportes, vector2.back().second);
+
+                (*iterAportes) = aporteMejorCromosoma;
+            }
+
             cambio++; cout<<"cambio numero "<<cambio<<endl;
 
         }
-            
+
         auto t1=clock();
-        
+
 	    auto time = (double(t1-t0)/CLOCKS_PER_SEC);
 
 	    cout << "Execution Time: " << time << endl;
@@ -916,25 +1007,32 @@ int main(){
             listaAportesReal.push_back(aporteIesimo);
         }
 
-        ofstream fichero("C:/Users/ivanc/OneDrive/Desktop/DatosPractica2/MDG-3.txt"); 
+fstream fichero("/home/cphys-lucia.zapataechevarne/Ivan/P2/datos/"+out_name, ios::app);
 
-        fichero << "-------------------------------------------------------------------"<<endl;
+	//string unString;
+
+ fichero <<"-------------------------------------------------------------------"<<endl;
 
         for(auto it=listaAportesReal.begin(); it!=listaAportesReal.end(); ++it){
-            fichero << (*it); 
+            fichero << (*it);
             fichero << endl;
         }
-        
+
         fichero <<"Time: "<<time<<endl;
         fichero << "-------------------------------------------------------------------"<<endl;
         fichero.close();
 
+	cout<<"COSTE FINAL: "<<endl;
 
+	if(out_name[0] == 'M'){
+		out_name[4]++;
+	}else{
+		out_name[5]++;
+	}
+		h++;
 
+    }		//Fin while
 
-
-	    cout<<"COSTE FINAL: "<<endl;
-        
     }
 
 	return 0;

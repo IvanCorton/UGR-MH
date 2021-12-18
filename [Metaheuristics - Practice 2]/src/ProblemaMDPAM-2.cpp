@@ -8,44 +8,10 @@
 #include <list>
 #include <time.h>
 #include <sys/time.h>
-#define MASK 2147483647
-#define PRIME 65539
-#define SCALE 0.4656612875e-9
-#define MAX 2000000000000000
+#include "math.h"
+#include "random.h"
 
 using namespace std;
-
-unsigned long Seed = 0L;
-
-/* GENERADOR DE NUMEROS ALEATORIOS */
-
-/* Inicializa la semilla al valor 'x'.
-   Solo debe llamarse a esta funcion una vez en todo el programa */
-void Set_random (unsigned long x){
-    Seed = (unsigned long) x;
-}
-
-/* Devuelve el valor actual de la semilla */
-unsigned long Get_random (void){
-    return Seed;
-}
-
-/* Genera un numero aleatorio real en el intervalo [0,1[
-   (incluyendo el 0 pero sin incluir el 1) */
-float Rand(void){
-    return (( Seed = ( (Seed * PRIME) & MASK) ) * SCALE );
-}
-
-/* Genera un numero aleatorio entero en {low,...,high} */
-int Randint(int low, int high){
-    return (int) (low + (high-(low)+1) * Rand());
-}
-
-/* Genera un numero aleatorio real en el intervalo [low,...,high[
-   (incluyendo 'low' pero sin incluir 'high') */
-float Randfloat(float low, float high){
-    return (low + (high-(low))*Rand());
-}
 
 
 bool estaDentro(int j, list<int> vecSolucion){
@@ -639,18 +605,158 @@ void comprobarReemplazamiento(list<int> candidatoActualReal, double maxAnterior,
 }
 
 
+void ordenacionPorAporte(list<int> &listaSolucion, vector<double> &aportes, list<int> &listaSolOrdenada, vector<double> &aportesOrdenado){
 
-int main(){
+    auto itSolucion = listaSolucion.begin(), indiceMinimo = listaSolucion.begin();
+    auto valorMinimo = aportes.begin();
+                        
+    //BUSCAREMOS SIEMPRE EL MENOR APORTE PARA INTRODUCIRLO AL FINAL DE LA LISTA ORDENADA
+    for(auto itAporte = aportes.begin(); itAporte < aportes.end(); itAporte++){
+        if(*itAporte < *valorMinimo){
+                valorMinimo = itAporte;
+                indiceMinimo = itSolucion;
+        }
+        itSolucion++;
+    }
+                        
+    aportesOrdenado.push_back((*valorMinimo));
+    listaSolOrdenada.push_back((*indiceMinimo));
+    aportes.erase(valorMinimo);
+    listaSolucion.erase(indiceMinimo);
 
-	int n, m, k, l, LIMITE=2000;
+}
+
+
+void BusquedaLocal(vector<vector<double>> vecDistancias, int m, int LIMITE, list<int> &listaSolucion, list<int> &listaCandidatos, int inicio, int fin){
+
+    auto cambio = 0;
+    auto parada = false;
+
+    auto t0=clock();
+
+    //400 iteraciones BL
+          
+    while((cambio < LIMITE) && !parada){
+                
+        vector<double> aportes(m);
+        auto i = 0, j=0;
+
+        // FACTORIZACION DEL APORTE DE CADA NODO DE LA SOLUCION
+        for(list<int>::iterator it = listaSolucion.begin(); it != listaSolucion.end(); it++, i++){
+            j = i;
+            for(list<int>::iterator jt = it; jt != listaSolucion.end(); jt++, j++){
+                aportes[i] += vecDistancias[*it][*jt];
+                aportes[j] += vecDistancias[*it][*jt];
+            }
+        }
+                    
+        //ORDENAMOS EN ESTOS VECTORES
+        vector<double> aportesOrdenado;
+        list<int> listaSolOrdenada;
+             
+        //Mientras queden datos en el vector de aportes
+        while(!aportes.empty()){
+            ordenacionPorAporte(listaSolucion, aportes, listaSolOrdenada, aportesOrdenado);
+        }
+
+        //BUSQUEDA DE MEJOR VECINO
+        auto iter = aportesOrdenado.begin();
+        bool mejora = false;
+
+            //Si no se ha encontrado un vecindario mejor en el elemento que menos aporta
+            //se pasa a buscar un mejor vecindario en el siguiente elemento que menos aporta
+            //, así hasta que hayamos probado con todos los elementos o hayamos encontrado
+            // una mejor solucion.
+            while((iter != aportesOrdenado.end()) && !mejora){
+
+                auto costeMinimo = *iter;
+                int indiceMinimo = listaSolOrdenada.front();
+                listaSolOrdenada.pop_front();
+
+                //Desordenamos la lista de Abiertos_BL para no favorecer siempre a los
+                //primeros elementos
+                barajar(listaCandidatos);
+
+                //Buscamos en todo el vecindario hasta encontrar una mejor solucion
+                
+                for(auto iterator = listaCandidatos.begin(); iterator!=listaCandidatos.end() && !mejora; iterator++){
+                    
+                    double costeMejor = 0;
+
+                    //Calculo del aporte del candidato al que apunte iterator
+                    for(auto i = listaSolOrdenada.begin(); i != listaSolOrdenada.end(); i++){
+                        costeMejor += vecDistancias[*iterator][*i];
+                    }
+                    
+                    if(costeMejor > costeMinimo){
+                        mejora = true;
+                        listaSolOrdenada.push_back(*iterator);
+                        listaCandidatos.remove(*iterator);
+                        listaCandidatos.push_back(indiceMinimo);
+                    }
+                }
+
+                //Si no se ha encontrado una mejor solucion, incluimos el elemento de menor
+                //aporte otra vez la lista Solucion_BL_ordenado y probamos con el siguiente
+                //elemento
+                if(!mejora){
+                    listaSolOrdenada.push_back(indiceMinimo);
+                    iter++;
+                }
+            }
+            //Si no hemos encontrado una mejor solucion y hemos probado cambiar todos los
+            //elementos, se finaliza el algoritmo
+            if(!mejora){
+                parada = true;
+            }
+            listaSolucion = listaSolOrdenada;
+            cambio++;
+        }
+    cout<<"Hola"<<endl;
+
+}
+
+
+int main(int argc,char *argv[]){
+
+	int n, m, k, l, LIMITE=30;
 	double distancia;
+	int h = 0;
+
+	int numArchivosAcargar = 9;
+
+	if(argc!=4){
+    		printf("Datos mal introducidos.\n");
+    		exit(1); 
+	}
+
+	string file_name = argv[1];	//Fichero del que tomar datos
+
+	string out_name = argv[2];
+
+	while(h<numArchivosAcargar){
+		
+
 	
-    auto Semilla = 1234567890;
-    Set_random(Semilla);
+		cout<<file_name<<endl;
+		cout<<out_name<<endl;
 
-	ifstream File("C:/Users/ivanc/OneDrive/Desktop/Universidad/MH/Instancias y Tablas MDP 2019-20/GKD-c_11_n500_m50.txt",ios::in);
+		//Fichero en el que escribir datos
 
-	if(!File){
+	int Semilla = stoi(argv[3]);	//Semilla aleatoria
+	Set_random(Semilla);
+
+	ifstream File;
+
+	if(file_name[0] == 'M'){
+		file_name[6]++;
+	}else{
+		file_name[7]++;
+	}
+
+	File.open("/home/cphys-lucia.zapataechevarne/Ivan/P2/datos/"+file_name);	
+
+	if(File.fail()){
 		cout<<"Error al abrir el archivo, por favor, compruebe el nombre del fichero de entrada..."<<endl;
 		exit(1);
 	}else{
@@ -810,18 +916,18 @@ int main(){
                 poblacionPadres.pop_front();
                 list<int> hijo1, hijo2;
 
-                positionCrossover(padre1, padre2, hijo1, hijo2, n);
+                //GENERACIONAL 2: CRUCE UNIFORME (Mayor corvengencia)
+                uniformCrossover(padre1, padre2, hijo1, n);
                 reparacion(hijo1, vecDistancias, aporteHijo, m);
-                
+
                 poblacionIntermedia.push_back(hijo1);
                 aportesIntermedios.push_back(aporteHijo);
 
+                uniformCrossover(padre1, padre2, hijo2, n);
                 reparacion(hijo2, vecDistancias, aporteHijo, m);
 
                 poblacionIntermedia.push_back(hijo2);
                 aportesIntermedios.push_back(aporteHijo);
-
-                //GENERACIONAL 3: RECUPERACION HASTA M DESDE PADRE 1 Y PADRE 2
 
                 crucesEsperados--;
             }
@@ -856,17 +962,17 @@ int main(){
                 indicesSol.push_back(i);
             }
 
-            vector<pair<double, int>> vector;
+            vector<pair<double, int>> vector3;
 
             auto itC = indicesSol.begin();
 
             for(list<double>::iterator it=aportesIniciales.begin(); it!=aportesIniciales.end();it++, itC++){
-                vector.push_back(make_pair((*it), (*itC)));
+                vector3.push_back(make_pair((*it), (*itC)));
             }
 
-            sort(vector.begin(),vector.end(), compare);
+            sort(vector3.begin(),vector3.end(), compare);
 
-            auto mejorCromosomaActual = vector.front().second;
+            auto mejorCromosomaActual = vector3.front().second;
 
             auto itA = listaSolucion.begin();
 
@@ -888,7 +994,120 @@ int main(){
             comprobarReemplazamiento(candidatoActualReal, maxAnterior, listaAportes, poblacionIntermedia, vecDistancias, m);
 
             listaSolucion = poblacionIntermedia;
-            
+
+            auto contadorBL = 0;
+
+            list<list<int>> listaSolucionEntera;
+            list<int> solucionEntera;
+
+            list<list<int>> listaCandidatosEntera;
+            list<int> candidatoEntera;
+
+            for(auto i=listaSolucion.begin(); i!=listaSolucion.end(); i++){
+                for(auto j=(*i).begin(); j!=(*i).end(); j++, contadorBL++){
+                    if(*j==1){
+                        solucionEntera.push_back(contadorBL);
+                    }else{
+                        candidatoEntera.push_back(contadorBL);
+                    }
+                }
+                listaCandidatosEntera.push_back(candidatoEntera);
+                listaSolucionEntera.push_back(solucionEntera);
+                solucionEntera.assign(0,0);
+                candidatoEntera.assign(0,0);
+                contadorBL=0;
+            }
+
+            contadorBL = 0;
+            bool heHechoBL = false;
+
+            auto itSoluBin = listaSolucion.begin();
+            auto it = listaSolucionEntera.begin();
+            auto itCandidatos = listaCandidatosEntera.begin();
+            list<list<double>> aportesMejores;
+
+            /*
+                    2. AM-(10,0.1): Cada 10 generaciones, se aplica la BL sobre un subconjunto de
+                    cromosomas de la población seleccionado aleatoriamente con probabilidad pLS
+                    igual a 0.1 para cada cromosoma.
+
+            */
+
+            while(contadorBL<m && cambio%10==0 && cambio!=0){
+                
+                auto InicionuevaM = Randint(-1,m-5);
+                auto FinalnuevaM = Randint(-4, m-1);
+
+                while((InicionuevaM==FinalnuevaM || InicionuevaM>FinalnuevaM) && FinalnuevaM-InicionuevaM != 5){
+                    InicionuevaM = Randint(-1,m-5);
+                    FinalnuevaM = Randint(4, m-1);
+                }
+
+                auto tamSubcadena = FinalnuevaM - InicionuevaM;
+
+                auto itSub = (*it).begin();
+                advance(itSub, InicionuevaM);
+                
+                list<int> subcadenaI;
+
+                for(auto i = 0; i<tamSubcadena; i++, itSub++){
+                    subcadenaI.push_back(*itSub);
+                }
+
+                BusquedaLocal(vecDistancias, tamSubcadena, 400, subcadenaI, (*itCandidatos), InicionuevaM, FinalnuevaM);
+
+                itSub = (*it).begin();
+
+                advance(itSub, InicionuevaM);
+
+                for(auto i = 0; i<tamSubcadena; i++, itSub++){
+                    (*itSub) = subcadenaI.front();
+                    subcadenaI.pop_front();
+                }
+
+                auto contado = 0;
+
+                list<int> mejorSolucionEntera = (*it);
+                list<int> mejorSolucionBinaria;
+
+                //ACTUALIZAR LISTA SOLUCION EN BINARIO Y APORTES.
+                for(auto itEntera = mejorSolucionEntera.begin(); itEntera!=mejorSolucionEntera.end(); itEntera++,contado++){
+                    if(*itEntera==1){
+                        mejorSolucionBinaria.push_back(1);
+                    }else{
+                        mejorSolucionBinaria.push_back(0);
+                    }
+                }
+                
+                (*itSoluBin) = mejorSolucionBinaria;
+
+                list<double> aportesMejI;
+
+                vector<double> listovec(m);
+
+                auto i = 0, j = 0;
+
+                for(list<int>::iterator it = mejorSolucionEntera.begin(); it != mejorSolucionEntera.end(); it++, i++){
+                    j = i;
+                    for(list<int>::iterator jt = it; jt != mejorSolucionEntera.end(); jt++, j++){
+                        listovec[i] += vecDistancias[*it][*jt];
+                        listovec[j] += vecDistancias[*it][*jt];
+                    }
+                }
+
+                aportesMejI.insert(aportesMejI.begin(), listovec.begin(), listovec.end());
+                aportesMejI.resize(m);
+                
+                aportesMejores.push_back(aportesMejI);
+
+                it++; itCandidatos++; itSoluBin++;
+                contadorBL++; heHechoBL=true;
+
+
+            }
+
+            if(heHechoBL) listaAportes = aportesMejores;
+
             cambio++; cout<<"cambio numero "<<cambio<<endl;
 
         }
@@ -923,10 +1142,31 @@ int main(){
             listaAportesReal.push_back(aporteIesimo);
         }
 
+fstream fichero("/home/cphys-lucia.zapataechevarne/Ivan/P2/datos/"+out_name, ios::app);
 
+	//string unString;
 
+ fichero <<"-------------------------------------------------------------------"<<endl;
 
-	    cout<<"COSTE FINAL: "<<endl;
+        for(auto it=listaAportesReal.begin(); it!=listaAportesReal.end(); ++it){
+            fichero << (*it); 
+            fichero << endl;
+        }
+        
+        fichero <<"Time: "<<time<<endl;
+        fichero << "-------------------------------------------------------------------"<<endl;
+        fichero.close();
+
+	cout<<"COSTE FINAL: "<<endl;
+	
+	if(out_name[0] == 'M'){
+		out_name[4]++;
+	}else{
+		out_name[5]++;
+	}
+		h++;
+        
+    }		//Fin while
         
     }
 

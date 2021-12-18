@@ -1,0 +1,13 @@
+IMPORTANTE:
+-> Estando dentro de P3, escribir SOLO UNA VEZ:
+	make
+
+(Para compilar y generar los ejecutables)
+
+IMPORTANTE: Usar los comandos estando situados en la carpeta P3/bin.
+
+--------------------------------------------
+Para ejecutar el primer algoritmo:
+--------------------------------------------
+
+./ejecutable MDG-b_1_n500_m50.txt 1234567890
