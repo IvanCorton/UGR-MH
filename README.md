@@ -1,2 +1,2 @@
 # UGR-MH
- Resources from Metaheuristics - Practises (UGR)
+ Resources from Metaheuristics - Practices (UGR)
